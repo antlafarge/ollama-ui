@@ -1,5 +1,29 @@
 import { AI_ENDPOINT } from "./constants";
 
+export async function* processXNdJson<T>(generator: AsyncGenerator<Uint8Array<ArrayBuffer>>): AsyncGenerator<T> {
+    const textDecoder = new TextDecoder();
+
+    let json = '';
+
+    for await (const chunk of generator) {
+        json += textDecoder.decode(chunk);
+
+        console.log(json);
+
+        const index = json.indexOf('\n');
+
+        if (index > -1) {
+            yield JSON.parse(json.substring(0, index));
+
+            json = json.substring(index);
+        }
+    }
+
+    if (json.length) {
+        yield JSON.parse(json);
+    }
+}
+
 export type TagsResponse = {
     models: Array<{
         name: string;
@@ -54,13 +78,12 @@ export async function* pull(model: string): AsyncGenerator<PullResponse> {
         throw new Error(await response.text())
     }
 
-    const textDecoder = new TextDecoder();
+    if (!response.body) {
+        throw new Error('Missing body');
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for await (const chunk of response.body as any) {
-        const json = textDecoder.decode(chunk as Uint8Array<ArrayBuffer>);
-        yield JSON.parse(json) as PullResponse;
-    }
+    return processXNdJson<PullResponse>(response.body as any);
 }
 
 export type LogProb = {
@@ -108,12 +131,10 @@ export async function* generate({ prompt, model }: { prompt: string; model: stri
         throw new Error(await response.text())
     }
 
-    const textDecoder = new TextDecoder();
+    if (!response.body) {
+        throw new Error('Missing body');
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for await (const chunk of response.body as any) {
-        const json = textDecoder.decode(chunk as Uint8Array<ArrayBuffer>);
-        console.log(json);
-        yield JSON.parse(json) as GenerateResponse;
-    }
+    return processXNdJson<GenerateResponse>(response.body as any);
 }
