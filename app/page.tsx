@@ -31,6 +31,7 @@ export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [thinking, setThinking] = useState(false);
+  const [pullProgress, setPullProgress] = useState(0);
 
   function addMessages(...newMessages: Message[]) {
     setMessages(messages.concat(newMessages));
@@ -42,7 +43,13 @@ export default function Home() {
   }
 
   function processTags(result: TagsResponse) {
-    setModels(result.models.map((model) => model.name));
+    const newModels = result.models.map((model) => model.name);
+
+    setModels(newModels);
+
+    if (!model.length && newModels.length) {
+      setModel(newModels[0]);
+    }
   }
 
   async function execGenerate() {
@@ -55,7 +62,7 @@ export default function Home() {
     try {
       let response = '';
 
-      for await (const result of generate(prompt)) {
+      for await (const result of generate({ prompt, model })) {
         response += result.response;
 
         addMessages(promptMessage, { message: response, ai: true });
@@ -69,9 +76,13 @@ export default function Home() {
 
   async function execPull() {
     try {
-      await pull(modelToPull.trim());
+      for await (const result of pull(modelToPull.trim())) {
+        setPullProgress(Math.max(0, Math.min(1, result.completed / result.total)));
+      }
 
-      shouldGetModels.current = true
+      shouldGetModels.current = true;
+
+      setPullProgress(0);
     } catch (error) {
       processError(error);
     }
@@ -116,7 +127,7 @@ export default function Home() {
                       {models.map((model) => <option value={model} key={model}>{model}</option>
                       )}
                     </select>
-                    <input type="text" id="pullModel" className="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-2.5 py-2 shadow-xs placeholder:text-body" placeholder="Pull model" value={modelToPull} onChange={(ev) => setModelToPull(ev.target.value)} onKeyDown={(event) => event.key === 'Enter' && execPull()} />
+                    <input type="text" id="pullModel" className="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-2.5 py-2 shadow-xs placeholder:text-body" placeholder="Pull model" disabled={pullProgress !== 0} style={{ background: `linear-gradient(to right, #3b82f6 ${100 * pullProgress}%, transparent ${100 * pullProgress}%)` }} value={modelToPull} onChange={(ev) => setModelToPull(ev.target.value)} onKeyDown={(event) => event.key === 'Enter' && execPull()} />
                   </div>
                 </div>
               </div>

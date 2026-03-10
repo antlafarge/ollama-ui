@@ -1,4 +1,4 @@
-import { AI_ENDPOINT, AI_MODEL } from "./constants";
+import { AI_ENDPOINT } from "./constants";
 
 export type TagsResponse = {
     models: Array<{
@@ -35,16 +35,18 @@ export async function tags(): Promise<TagsResponse> {
 }
 
 export type PullResponse = {
-    status: string;
+    status: `pulling ${string}` | 'verifying sha256 digest' | 'writing manifest' | 'success';
+    digest: `sha256:${string}`;
+    total: number;
+    completed: number;
 }
 
-export async function pull(model: string): Promise<PullResponse> {
+export async function* pull(model: string): AsyncGenerator<PullResponse> {
     const response = await fetch(`${AI_ENDPOINT}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model,
-            stream: false,
         })
     });
 
@@ -52,7 +54,13 @@ export async function pull(model: string): Promise<PullResponse> {
         throw new Error(await response.text())
     }
 
-    return await response.json();
+    const textDecoder = new TextDecoder();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for await (const chunk of response.body as any) {
+        const json = textDecoder.decode(chunk as Uint8Array<ArrayBuffer>);
+        yield JSON.parse(json) as PullResponse;
+    }
 }
 
 export type LogProb = {
@@ -65,23 +73,23 @@ export type GenerateResponse = {
     model: string;
     created_at: string;
     response: string;
-    thinking: string;
     done: boolean;
-    done_reason: string;
-    total_duration: number;
-    load_duration: number;
-    prompt_eval_count: number;
-    prompt_eval_duration: number;
-    eval_count: number;
-    eval_duration: number;
-    logprobs: Array<
+    thinking?: string;
+    done_reason?: string;
+    total_duration?: number;
+    load_duration?: number;
+    prompt_eval_count?: number;
+    prompt_eval_duration?: number;
+    eval_count?: number;
+    eval_duration?: number;
+    logprobs?: Array<
         & LogProb
         & {
             top_logprobs: Array<LogProb>;
         }>;
 };
 
-export async function* generate(prompt: string): AsyncGenerator<GenerateResponse> {
+export async function* generate({ prompt, model }: { prompt: string; model: string; }): AsyncGenerator<GenerateResponse> {
     if (!prompt.length) {
         throw new Error('PROMPT_EMPY');
     }
@@ -90,7 +98,7 @@ export async function* generate(prompt: string): AsyncGenerator<GenerateResponse
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model: AI_MODEL,
+            model: model,
             system: '',
             prompt,
         })
@@ -105,6 +113,7 @@ export async function* generate(prompt: string): AsyncGenerator<GenerateResponse
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for await (const chunk of response.body as any) {
         const json = textDecoder.decode(chunk as Uint8Array<ArrayBuffer>);
+        console.log(json);
         yield JSON.parse(json) as GenerateResponse;
     }
 }
