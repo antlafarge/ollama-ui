@@ -1,0 +1,28 @@
+# docker compose down
+# docker compose pull
+# docker compose up -d --force-recreate
+# docker exec -it ollama ollama run qwen2.5-coder:7b
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ./ollama:/root/.ollama
+    networks:
+      - ollama
+    ports:
+      - 11434:11434
+  ollama-ui:
+    image: antlafarge/ollama-ui:latest
+    container_name: ollama-ui
+    networks:
+      - ollama
+    ports:
+      - 7365:7365
+    environment:
+      - NEXT_PUBLIC_AI_ENDPOINT=http://localhost:11434
+      - NEXT_PUBLIC_AI_MODEL=qwen2.5-coder:7b
+
+networks:
+  ollama:
