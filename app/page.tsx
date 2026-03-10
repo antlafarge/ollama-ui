@@ -62,7 +62,7 @@ export default function Home() {
     try {
       let response = '';
 
-      for await (const result of generate({ prompt, model })) {
+      for await (const result of await generate({ prompt, model })) {
         response += result.response;
 
         addMessages(promptMessage, { message: response, ai: true });
@@ -76,8 +76,10 @@ export default function Home() {
 
   async function execPull() {
     try {
-      for await (const result of pull(modelToPull.trim())) {
-        setPullProgress(Math.max(0, Math.min(1, result.completed / result.total)));
+      for await (const result of await pull(modelToPull.trim())) {
+        if (result.completed != null && result.total != null) {
+          setPullProgress(Math.max(0, Math.min(1, result.completed / result.total)));
+        }
       }
 
       shouldGetModels.current = true;

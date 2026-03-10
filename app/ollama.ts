@@ -1,26 +1,21 @@
 import { AI_ENDPOINT } from "./constants";
 
-export async function* processXNdJson<T>(generator: AsyncGenerator<Uint8Array<ArrayBuffer>>): AsyncGenerator<T> {
+export async function* parseXNdJson<T>(generator: AsyncGenerator<Uint8Array<ArrayBuffer>>): AsyncGenerator<T> {
     const textDecoder = new TextDecoder();
-
     let json = '';
 
     for await (const chunk of generator) {
         json += textDecoder.decode(chunk);
+        let index = -1;
 
-        console.log(json);
+        while ((index = json.indexOf('\n')) > -1) {
+            const jsonPart = json.substring(0, index);
+            json = json.substring(index + 1);
 
-        const index = json.indexOf('\n');
-
-        if (index > -1) {
-            yield JSON.parse(json.substring(0, index));
-
-            json = json.substring(index);
+            if (jsonPart.length) {
+                yield JSON.parse(jsonPart);
+            }
         }
-    }
-
-    if (json.length) {
-        yield JSON.parse(json);
     }
 }
 
@@ -60,12 +55,12 @@ export async function tags(): Promise<TagsResponse> {
 
 export type PullResponse = {
     status: `pulling ${string}` | 'verifying sha256 digest' | 'writing manifest' | 'success';
-    digest: `sha256:${string}`;
-    total: number;
-    completed: number;
+    digest?: `sha256:${string}`;
+    total?: number;
+    completed?: number;
 }
 
-export async function* pull(model: string): AsyncGenerator<PullResponse> {
+export async function pull(model: string): Promise<AsyncGenerator<PullResponse>> {
     const response = await fetch(`${AI_ENDPOINT}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,7 +78,7 @@ export async function* pull(model: string): AsyncGenerator<PullResponse> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return processXNdJson<PullResponse>(response.body as any);
+    return parseXNdJson<PullResponse>(response.body as any);
 }
 
 export type LogProb = {
@@ -112,7 +107,7 @@ export type GenerateResponse = {
         }>;
 };
 
-export async function* generate({ prompt, model }: { prompt: string; model: string; }): AsyncGenerator<GenerateResponse> {
+export async function generate({ prompt, model }: { prompt: string; model: string; }): Promise<AsyncGenerator<GenerateResponse>> {
     if (!prompt.length) {
         throw new Error('PROMPT_EMPY');
     }
@@ -136,5 +131,5 @@ export async function* generate({ prompt, model }: { prompt: string; model: stri
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return processXNdJson<GenerateResponse>(response.body as any);
+    return parseXNdJson<GenerateResponse>(response.body as any);
 }
