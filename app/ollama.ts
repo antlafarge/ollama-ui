@@ -1,6 +1,6 @@
 import { AI_ENDPOINT } from "./constants";
 
-export async function* parseXNdJson<T>(generator: AsyncGenerator<Uint8Array<ArrayBuffer>>): AsyncGenerator<T> {
+export async function* parseNDJSON<T>(generator: AsyncGenerator<Uint8Array<ArrayBuffer>>, onError?: (error: unknown) => void): AsyncGenerator<T> {
     const textDecoder = new TextDecoder();
     let json = '';
 
@@ -16,9 +16,19 @@ export async function* parseXNdJson<T>(generator: AsyncGenerator<Uint8Array<Arra
                 try {
                     yield JSON.parse(jsonPart);
                 } catch (error) {
-                    console.warn(error);
+                    onError?.(error);
                 }
             }
+        }
+    }
+
+    json = json.trim();
+
+    if (json.length) {
+        try {
+            yield JSON.parse(json);
+        } catch (error) {
+            onError?.(error);
         }
     }
 }
@@ -82,7 +92,7 @@ export async function pull(model: string): Promise<AsyncGenerator<PullResponse>>
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return parseXNdJson<PullResponse>(response.body as any);
+    return parseNDJSON<PullResponse>(response.body as any, console.error);
 }
 
 export type LogProb = {
@@ -135,5 +145,5 @@ export async function generate({ prompt, model }: { prompt: string; model: strin
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return parseXNdJson<GenerateResponse>(response.body as any);
+    return parseNDJSON<GenerateResponse>(response.body as any, console.error);
 }
