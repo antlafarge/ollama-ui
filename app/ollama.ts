@@ -9,11 +9,15 @@ export async function* parseXNdJson<T>(generator: AsyncGenerator<Uint8Array<Arra
         let index = -1;
 
         while ((index = json.indexOf('\n')) > -1) {
-            const jsonPart = json.substring(0, index);
+            const jsonPart = json.substring(0, index).trim();
             json = json.substring(index + 1);
 
             if (jsonPart.length) {
-                yield JSON.parse(jsonPart);
+                try {
+                    yield JSON.parse(jsonPart);
+                } catch (error) {
+                    console.warn(error);
+                }
             }
         }
     }
