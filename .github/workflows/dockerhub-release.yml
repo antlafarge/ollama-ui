@@ -10,12 +10,6 @@ on:
     paths-ignore:
       - '**.md'
       - '**.MD'
-  pull_request:
-    branches:
-      - 'main'
-    paths-ignore:
-      - '**.md'
-      - '**.MD'
   workflow_dispatch:
 
 jobs:
