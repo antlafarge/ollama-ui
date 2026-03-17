@@ -2,11 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { useState } from "react";
-import { generate, tags, type TagsResponse, pull } from "./ollama";
+import { generate, tags, type TagsResponse, pull, chat } from "./ollama";
+import { MAX_CHAT_MESSAGES_COUNT } from "./constants";
 
 export type Message = {
-  message: string;
-  ai?: boolean;
+  content: string;
+  role: "user" | "assistant";
 };
 
 function ThinkingAnimation() {
@@ -28,10 +29,11 @@ export default function Home() {
   const [models, setModels] = useState<string[]>([]);
   const [model, setModel] = useState<string>('');
   const [modelToPull, setModelToPull] = useState<string>('');
-  const [prompt, setPrompt] = useState('');
+  const [userContent, setUserContent] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [thinking, setThinking] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
+  const [chatMode, setChatMode] = useState(true);
 
   function addMessages(...newMessages: Message[]) {
     setMessages(messages.concat(newMessages));
@@ -52,20 +54,58 @@ export default function Home() {
     }
   }
 
+  async function exec() {
+    if (chatMode) {
+      return execChat();
+    } else {
+      return execGenerate();
+    }
+  }
+
   async function execGenerate() {
-    const promptMessage = { message: prompt.trim() };
+    const prompt = userContent.trim();
+    const message: Message = { role: "user", content: prompt };
 
     setThinking(true);
-    setPrompt('');
-    addMessages(promptMessage);
+    setUserContent('');
+    addMessages(message);
 
     try {
       let response = '';
 
-      for await (const result of await generate({ prompt, model })) {
-        response += result.response;
+      for await (const result of await generate({ model, prompt })) {
+        if (result.response?.length) {
+          response += result.response;
 
-        addMessages(promptMessage, { message: response, ai: true });
+          addMessages(message, { role: "assistant", content: response });
+        }
+      }
+    } catch (error) {
+      processError(error);
+    } finally {
+      setThinking(false);
+    }
+  }
+
+  async function execChat() {
+    const prompt = userContent.trim();
+    const message: Message = { role: "user", content: prompt };
+
+    setThinking(true);
+    setUserContent('');
+    addMessages(message);
+
+    try {
+      let response = '';
+
+      for await (const result of await chat({ model, messages: messages.slice(-MAX_CHAT_MESSAGES_COUNT).concat({ role: 'user', content: prompt }) })) {
+        if (result.message?.content) {
+          console.log(result.message.content);
+
+          response += result.message.content;
+
+          addMessages(message, { role: "assistant", content: response });
+        }
       }
     } catch (error) {
       processError(error);
@@ -109,8 +149,8 @@ export default function Home() {
           </h1>
           {
             messages.length
-              ? messages.map(({ message, ai }, i) => <div key={i} className={`${ai ? '' : 'p-2 rounded-sm bg-gray-800'}`}>
-                <pre className="text-wrap">{message}</pre>
+              ? messages.map(({ role, content }, i) => <div key={i} className={`${role === 'assistant' ? '' : 'p-2 rounded-sm bg-gray-800'}`}>
+                <pre className="text-wrap">{content}</pre>
               </div>)
               : undefined
           }
@@ -119,14 +159,15 @@ export default function Home() {
               ? <ThinkingAnimation />
               : undefined
           }
-          <form className="w-full" onSubmit={(event) => { event.preventDefault(); execGenerate(); }}>
+          <form className="w-full" onSubmit={(event) => { event.preventDefault(); if (userContent?.length) { exec(); } }}>
             <div className="w-full mb-4 border border-default-medium rounded-base bg-neutral-secondary-medium shadow-xs">
               <div className="flex items-center justify-between px-3 py-2 border-b border-default-medium">
                 <div className="flex flex-wrap items-center divide-default-medium sm:divide-x sm:rtl:divide-x-reverse">
                   <div className="flex items-center space-x-1 rtl:space-x-reverse sm:pe-4">
-                    {/* <label htmlFor="models" className="block mb-2.5 text-sm font-medium text-heading">Select an option</label> */}
+                    <input id="inline-checkbox" type="checkbox" checked={chatMode} className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft" onChange={(event) => setChatMode(event.target.checked)} />
+                    <label htmlFor="inline-checkbox" className="select-none ms-2 text-sm font-medium text-heading">Chat</label>
                     <select id="models" className="block w-full px-3 py-2.5 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand shadow-xs placeholder:text-body" value={model} onChange={(ev) => setModel(ev.target.value)}>
-                      {models.map((model) => <option value={model} key={model}>{model}</option>
+                      {models.map((model) => <option className="dark:bg-black" value={model} key={model}>{model}</option>
                       )}
                     </select>
                     <input type="text" id="pullModel" className="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-2.5 py-2 shadow-xs placeholder:text-body" placeholder="Pull model" disabled={pullProgress !== 0} style={{ background: `linear-gradient(to right, #3b82f6 ${100 * pullProgress}%, transparent ${100 * pullProgress}%)` }} value={modelToPull} onChange={(ev) => setModelToPull(ev.target.value)} onKeyDown={(event) => event.key === 'Enter' && execPull()} />
@@ -134,8 +175,8 @@ export default function Home() {
                 </div>
               </div>
               <div className="px-4 py-2 bg-neutral-secondary-medium rounded-b-base">
-                <label htmlFor="prompt" className="sr-only">Send</label>
-                <textarea id="prompt" rows={8} className="block w-full px-0 text-sm text-heading bg-neutral-secondary-medium border-0 focus:ring-0 placeholder:text-body" placeholder="Prompt" required onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && !event.shiftKey && execGenerate()} value={prompt}></textarea>
+                <label htmlFor="userContent" className="sr-only">Send</label>
+                <textarea id="userContent" rows={8} className="block w-full px-0 text-sm text-heading bg-neutral-secondary-medium border-0 focus:ring-0 placeholder:text-body" placeholder="Prompt" required onChange={(event) => setUserContent(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && !event.shiftKey && userContent?.length && exec()} value={userContent}></textarea>
               </div>
             </div>
             <button type="submit" className="text-white bg-brand box-border border border-transparent hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium leading-5 rounded-base text-sm px-4 py-2.5 focus:outline-none" disabled={thinking} style={{ cursor: thinking ? 'not-allowed' : 'pointer' }}>{thinking ? 'Thinking...' : 'Send'}</button>

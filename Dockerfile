@@ -11,5 +11,4 @@ RUN rm -f -r /usr/share/nginx/html/*
 COPY --from=builder /app/out/ ./
 COPY nginx.conf /etc/nginx/conf.d/
 ARG PORT=7365
-ENV NEXT_PUBLIC_AI_ENDPOINT=http://localhost:11434
 EXPOSE $PORT

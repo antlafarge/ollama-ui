@@ -43,5 +43,6 @@ docker buildx ls
 docker buildx create --name mybuilder
 docker buildx use mybuilder
 docker buildx inspect --bootstrap
-docker buildx build --platform linux/amd64 -t antlafarge/ollama-ui:dev -t antlafarge/ollama-ui:latest --push .
+docker buildx build --platform linux/amd64 -t antlafarge/ollama-ui:dev --push .
+docker buildx imagetools create antlafarge/ollama-ui:dev -t antlafarge/ollama-ui:latest
 ```
