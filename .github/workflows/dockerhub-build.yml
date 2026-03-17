@@ -34,7 +34,7 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v6
         with:
-          file: Dockerfile/.Dockerfile
+          file: Dockerfile
           platforms: linux/amd64
           tags: ${{ env.IMAGE_NAME }}:dev
           push: true
