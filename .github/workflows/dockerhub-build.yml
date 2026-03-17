@@ -6,13 +6,13 @@ env:
 on:
   push:
     branches:
-      - 'main'
+      - 'develop'
     paths-ignore:
       - '**.md'
       - '**.MD'
   pull_request:
     branches:
-      - 'main'
+      - 'develop'
     paths-ignore:
       - '**.md'
       - '**.MD'
