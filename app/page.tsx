@@ -191,7 +191,7 @@ export default function Home() {
         </div >
       </main>
 
-      <footer className="navbar navbar-dark bg-dark mt-auto">
+      <footer className="fixed-bottom navbar navbar-dark bg-dark mt-auto">
         <div className="container-fluid justify-content-center">
           <div className="input-group mb-3">
             <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{model ?? 'Ollama-UI'}</button>
