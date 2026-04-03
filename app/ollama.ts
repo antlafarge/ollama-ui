@@ -259,4 +259,16 @@ export async function chat(chatRequest: ChatRequest): Promise<AsyncGenerator<Cha
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return parseNDJSON<ChatResponse>(response.body as any, console.error);
-};
+}
+
+export async function deleteModel(model: string): Promise<void> {
+    const response = await fetch(`${AI_ENDPOINT}/api/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model }),
+    });
+
+    if (!response.ok) {
+        throw new Error(await response.text())
+    }
+}

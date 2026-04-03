@@ -5,3 +5,7 @@ window, body {
 .selector-for-some-widget {
   box-sizing: content-box;
 }
+
+.whitespace-prewrap {
+  white-space: pre-wrap;
+}
