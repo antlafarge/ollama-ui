@@ -102,8 +102,9 @@ export default function Home() {
       for await (const result of await chat({ model, messages: messages.slice(-MAX_CHAT_MESSAGES_COUNT).concat({ role: 'user', content: prompt }) })) {
         if (result.message?.content) {
           response += result.message.content;
+          response = response.trim();
 
-          addMessages(message, { role: "assistant", content: response });
+          addMessages(message, { role: 'assistant', content: response });
         }
       }
     } catch (error) {
@@ -150,8 +151,17 @@ export default function Home() {
         .then((result) => {
           setTagsResponse(result);
 
-          if (!model.length && result.models.length) {
-            setModel(result.models[0].name);
+          const modelNotFound = !result.models.find((curModel) => curModel.name === model);
+
+          if ((!model.length || modelNotFound) && result.models.length) {
+            const modelStored = localStorage.getItem('model');
+            const modelToUse = result.models.find((curModel) => curModel.name === modelStored)?.name ?? result.models[0].name;
+
+            setModel(modelToUse);
+
+            if (modelStored !== modelToUse) {
+              localStorage.setItem('model', modelToUse);
+            }
           }
         })
         .catch(processError);
@@ -160,7 +170,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="flex-grow-1" style={{ minHeight: '1em' }}>
+      <main className="flex-grow-1" style={{ marginBottom: '6em' }}>
         <div className="container">
           {
             messages.length
@@ -191,10 +201,10 @@ export default function Home() {
         </div >
       </main>
 
-      <footer className="fixed-bottom navbar navbar-dark bg-dark mt-auto">
+      <footer className="fixed-bottom navbar mt-auto">
         <div className="container-fluid justify-content-center">
           <div className="input-group dropup mb-3">
-            <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{model ?? 'Ollama-UI'}</button>
+            <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style={{ backgroundColor: 'var(--bs-body-bg)' }}>{model ?? 'Ollama-UI'}</button>
             <ul className="dropdown-menu">
               <form className="px-3 py-1">
                 <div className="form-check">
@@ -205,8 +215,8 @@ export default function Home() {
                 </div>
                 <div className="mt-2">
                   <div className="input-group mb-3">
-                    <select className="form-control form-select" id="models" value={model} onChange={(ev) => setModel(ev.target.value)}>
-                      {tagsResponse?.models.map(({ name }) => <option className="dark:bg-black" value={name} key={name}>{name}</option>
+                    <select className="form-control form-select" id="models" value={model} onChange={(ev) => { setModel(ev.target.value); localStorage.setItem('model', ev.target.value); }}>
+                      {tagsResponse?.models.map(({ name }) => <option value={name} key={name}>{name}</option>
                       )}
                     </select>
                     <button className="btn btn-outline-danger" type="button" id="button-addon2" onClick={execDelete}><i className="bi bi-trash3-fill"></i></button>
@@ -224,7 +234,7 @@ export default function Home() {
               onChange={setPrompt}
               onEnter={(c, s, a) => { if (!c && !s && !a && !thinking) { exec(); } return !s; }}
             />
-            <button className="btn btn-primary" type="button" id="button-addon2" disabled={thinking} style={{ cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
+            <button className="btn btn-outline-secondary" type="button" id="button-addon2" disabled={thinking} style={{ backgroundColor: 'var(--bs-body-bg)', cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
           </div>
         </div>
       </footer>

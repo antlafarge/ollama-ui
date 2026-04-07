@@ -1,7 +1,3 @@
-window, body {
-  background-color: var(--bs-body-color);
-}
-
 .selector-for-some-widget {
   box-sizing: content-box;
 }
