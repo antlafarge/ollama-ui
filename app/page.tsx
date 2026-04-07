@@ -200,7 +200,7 @@ export default function Home() {
         </div >
       </main>
 
-      <footer className="fixed-bottom navbar navbar-dark bg-dark mt-auto">
+      <footer className="fixed-bottom navbar mt-auto">
         <div className="container-fluid justify-content-center">
           <div className="input-group dropup mb-3">
             <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{model ?? 'Ollama-UI'}</button>
@@ -215,7 +215,7 @@ export default function Home() {
                 <div className="mt-2">
                   <div className="input-group mb-3">
                     <select className="form-control form-select" id="models" value={model} onChange={(ev) => { setModel(ev.target.value); localStorage.setItem('model', ev.target.value); }}>
-                      {tagsResponse?.models.map(({ name }) => <option className="dark:bg-black" value={name} key={name}>{name}</option>
+                      {tagsResponse?.models.map(({ name }) => <option value={name} key={name}>{name}</option>
                       )}
                     </select>
                     <button className="btn btn-outline-danger" type="button" id="button-addon2" onClick={execDelete}><i className="bi bi-trash3-fill"></i></button>
@@ -233,7 +233,7 @@ export default function Home() {
               onChange={setPrompt}
               onEnter={(c, s, a) => { if (!c && !s && !a && !thinking) { exec(); } return !s; }}
             />
-            <button className="btn btn-primary" type="button" id="button-addon2" disabled={thinking} style={{ cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
+            <button className="btn btn-outline-light" type="button" id="button-addon2" disabled={thinking} style={{ cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
           </div>
         </div>
       </footer>
