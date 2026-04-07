@@ -150,7 +150,9 @@ export default function Home() {
         .then((result) => {
           setTagsResponse(result);
 
-          if (!model.length && result.models.length) {
+          const modelNotFound = !result.models.find((curModel) => curModel.name === model);
+
+          if ((!model.length || modelNotFound) && result.models.length) {
             const modelStored = localStorage.getItem('model');
             const modelToUse = result.models.find((curModel) => curModel.name === modelStored)?.name ?? result.models[0].name;
 
