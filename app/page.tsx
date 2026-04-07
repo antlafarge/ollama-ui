@@ -233,7 +233,7 @@ export default function Home() {
               onChange={setPrompt}
               onEnter={(c, s, a) => { if (!c && !s && !a && !thinking) { exec(); } return !s; }}
             />
-            <button className="btn btn-outline-light" type="button" id="button-addon2" disabled={thinking} style={{ cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
+            <button className="btn btn-outline-secondary" type="button" id="button-addon2" disabled={thinking} style={{ cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
           </div>
         </div>
       </footer>
