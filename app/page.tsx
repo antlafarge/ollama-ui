@@ -169,7 +169,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="flex-grow-1">
+      <main className="flex-grow-1" style={{ marginBottom: '6em' }}>
         <div className="container">
           {
             messages.length
