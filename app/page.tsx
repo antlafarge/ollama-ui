@@ -102,8 +102,9 @@ export default function Home() {
       for await (const result of await chat({ model, messages: messages.slice(-MAX_CHAT_MESSAGES_COUNT).concat({ role: 'user', content: prompt }) })) {
         if (result.message?.content) {
           response += result.message.content;
+          response = response.trim();
 
-          addMessages(message, { role: "assistant", content: response });
+          addMessages(message, { role: 'assistant', content: response });
         }
       }
     } catch (error) {
@@ -203,7 +204,7 @@ export default function Home() {
       <footer className="fixed-bottom navbar mt-auto">
         <div className="container-fluid justify-content-center">
           <div className="input-group dropup mb-3">
-            <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{model ?? 'Ollama-UI'}</button>
+            <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style={{ backgroundColor: 'var(--bs-body-bg)' }}>{model ?? 'Ollama-UI'}</button>
             <ul className="dropdown-menu">
               <form className="px-3 py-1">
                 <div className="form-check">
@@ -233,7 +234,7 @@ export default function Home() {
               onChange={setPrompt}
               onEnter={(c, s, a) => { if (!c && !s && !a && !thinking) { exec(); } return !s; }}
             />
-            <button className="btn btn-outline-secondary" type="button" id="button-addon2" disabled={thinking} style={{ cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
+            <button className="btn btn-outline-secondary" type="button" id="button-addon2" disabled={thinking} style={{ backgroundColor: 'var(--bs-body-bg)', cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
           </div>
         </div>
       </footer>
