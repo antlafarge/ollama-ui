@@ -151,7 +151,14 @@ export default function Home() {
           setTagsResponse(result);
 
           if (!model.length && result.models.length) {
-            setModel(result.models[0].name);
+            const modelStored = localStorage.getItem('model');
+            const modelToUse = result.models.find((curModel) => curModel.name === modelStored)?.name ?? result.models[0].name;
+
+            setModel(modelToUse);
+
+            if (modelStored !== modelToUse) {
+              localStorage.setItem('model', modelToUse);
+            }
           }
         })
         .catch(processError);
@@ -160,7 +167,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="flex-grow-1" style={{ minHeight: '1em' }}>
+      <main className="flex-grow-1">
         <div className="container">
           {
             messages.length
@@ -205,7 +212,7 @@ export default function Home() {
                 </div>
                 <div className="mt-2">
                   <div className="input-group mb-3">
-                    <select className="form-control form-select" id="models" value={model} onChange={(ev) => setModel(ev.target.value)}>
+                    <select className="form-control form-select" id="models" value={model} onChange={(ev) => { setModel(ev.target.value); localStorage.setItem('model', ev.target.value); }}>
                       {tagsResponse?.models.map(({ name }) => <option className="dark:bg-black" value={name} key={name}>{name}</option>
                       )}
                     </select>
