@@ -1,0 +1,12 @@
+$primary: #EA5;
+
+@import "../node_modules/bootstrap/scss/functions";
+@import "../node_modules/bootstrap/scss/variables";
+
+// Custom bootstrap colors here
+
+@import "../node_modules/bootstrap/scss/bootstrap";
+
+.whitespace-prewrap {
+  white-space: pre-wrap;
+}
