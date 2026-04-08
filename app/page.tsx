@@ -170,7 +170,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="flex-grow-1" style={{ marginBottom: '6em' }}>
+      <main className="flex-grow-1 mb-5 pb-5">
         <div className="container">
           {
             messages.length
@@ -201,45 +201,45 @@ export default function Home() {
         </div >
       </main>
 
-      <footer className="fixed-bottom navbar mt-auto">
+      <footer className="fixed-bottom navbar mt-auto" data-bs-theme="light">
         <div className="container-fluid justify-content-center">
-          <div className="input-group dropup mb-3">
-            <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style={{ backgroundColor: 'var(--bs-body-bg)' }}>{model ?? 'Ollama-UI'}</button>
+          <div className="input-group dropup mb-1">
+            <button className="btn btn-outline-primary bg-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{model ?? 'Ollama-UI'} </button>
             <ul className="dropdown-menu">
+              <li><a className="dropdown-item text-primary" href="https://hub.docker.com/r/antlafarge/ollama-ui" target="_blank"><strong>Ollama-UI</strong></a></li>
+              <li><hr className="dropdown-divider" /></li>
+              <li><a className="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#pullModelModal"><i className="bi bi-download"></i> Pull a new model</a></li>
+              <li><hr className="dropdown-divider" /></li>
               <form className="px-3 py-1">
                 <div className="form-check">
-                  <input type="checkbox" className="form-check-input" id="checkbox-chat" checked={chatMode} aria-label="Checkbox for following text input" onChange={(event) => setChatMode(event.target.checked)} />
-                  <label className="form-check-label" htmlFor="checkbox-chat">
-                    Chat
-                  </label>
+                  <input type="checkbox" className="form-check-input" style={{cursor: "pointer"}} id="checkbox-chat" checked={chatMode} aria-label="Checkbox for following text input" onChange={(event) => setChatMode(event.target.checked)} />
+                  <label className="form-check-label" htmlFor="checkbox-chat" style={{cursor: "pointer"}}>Chat</label>
                 </div>
                 <div className="mt-2">
-                  <div className="input-group mb-3">
+                  <div className="input-group">
                     <select className="form-control form-select" id="models" value={model} onChange={(ev) => { setModel(ev.target.value); localStorage.setItem('model', ev.target.value); }}>
                       {tagsResponse?.models.map(({ name }) => <option value={name} key={name}>{name}</option>
                       )}
                     </select>
-                    <button className="btn btn-outline-danger" type="button" id="button-addon2" onClick={execDelete}><i className="bi bi-trash3-fill"></i></button>
+                    <button className="btn btn-outline-danger border" type="button" id="button-addon2" onClick={execDelete}><i className="bi bi-trash3-fill"></i></button>
                   </div>
                 </div>
               </form>
-              <li><hr className="dropdown-divider" /></li>
               <li><a className="dropdown-item" href="#"><i className="bi bi-upload"></i> Load a file</a></li>
-              <li><hr className="dropdown-divider" /></li>
-              <li><a className="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#pullModelModal"><i className="bi bi-download"></i> Pull a new model</a></li>
             </ul>
             <PreEditable
+              className="border-primary"
               placeholder="Prompt"
               value={prompt}
               onChange={setPrompt}
               onEnter={(c, s, a) => { if (!c && !s && !a && !thinking) { exec(); } return !s; }}
             />
-            <button className="btn btn-outline-secondary" type="button" id="button-addon2" disabled={thinking} style={{ backgroundColor: 'var(--bs-body-bg)', cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
+            <button className="btn btn-outline-primary bg-white" type="button" id="button-addon2" disabled={thinking} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
           </div>
         </div>
       </footer>
 
-      <div className="modal fade" id="pullModelModal" tabIndex={-1} aria-labelledby="pullModelModalLabel" aria-hidden="true">
+      <div className="modal fade" id="pullModelModal" tabIndex={-1} aria-labelledby="pullModelModalLabel" aria-hidden="true" data-bs-theme="light">
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
             <div className="modal-header">
