@@ -170,7 +170,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="flex-grow-1" style={{ marginBottom: '6em' }}>
+      <main className="flex-grow-1 mb-5 pb-5">
         <div className="container">
           {
             messages.length
@@ -201,10 +201,10 @@ export default function Home() {
         </div >
       </main>
 
-      <footer className="fixed-bottom navbar mt-auto">
+      <footer className="fixed-bottom navbar mt-auto" data-bs-theme="light">
         <div className="container-fluid justify-content-center">
           <div className="input-group dropup mb-3">
-            <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style={{ backgroundColor: 'var(--bs-body-bg)' }}>{model ?? 'Ollama-UI'}</button>
+            <button className="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{model ?? 'Ollama-UI'}</button>
             <ul className="dropdown-menu">
               <form className="px-3 py-1">
                 <div className="form-check">
@@ -234,12 +234,12 @@ export default function Home() {
               onChange={setPrompt}
               onEnter={(c, s, a) => { if (!c && !s && !a && !thinking) { exec(); } return !s; }}
             />
-            <button className="btn btn-outline-secondary" type="button" id="button-addon2" disabled={thinking} style={{ backgroundColor: 'var(--bs-body-bg)', cursor: thinking ? 'not-allowed' : 'pointer' }} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
+            <button className="btn btn-primary" type="button" id="button-addon2" disabled={thinking} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
           </div>
         </div>
       </footer>
 
-      <div className="modal fade" id="pullModelModal" tabIndex={-1} aria-labelledby="pullModelModalLabel" aria-hidden="true">
+      <div className="modal fade" id="pullModelModal" tabIndex={-1} aria-labelledby="pullModelModalLabel" aria-hidden="true" data-bs-theme="light">
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
             <div className="modal-header">

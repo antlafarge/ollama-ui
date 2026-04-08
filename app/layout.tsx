@@ -30,7 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-         data-bs-theme="dark"
+        data-bs-theme="dark"
       >
         <BootstrapClient />
         {children}
