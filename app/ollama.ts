@@ -50,10 +50,11 @@ export type TagsResponse = {
     }>
 }
 
-export async function tags(): Promise<TagsResponse> {
+export async function tags(abortSignal?: AbortSignal): Promise<TagsResponse> {
     const response = await fetch(`${AI_ENDPOINT}/api/tags`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortSignal,
     });
 
     if (!response.ok) {
@@ -74,13 +75,14 @@ export type PullResponse = {
     completed?: number;
 }
 
-export async function pull(model: string): Promise<AsyncGenerator<PullResponse>> {
+export async function pull(model: string, abortSignal?: AbortSignal): Promise<AsyncGenerator<PullResponse>> {
     const response = await fetch(`${AI_ENDPOINT}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model,
-        })
+        }),
+        signal: abortSignal,
     });
 
     if (!response.ok) {
@@ -145,7 +147,7 @@ export type GenerateResponse = {
     >;
 };
 
-export async function generate(generateRequest: GenerateRequest): Promise<AsyncGenerator<GenerateResponse>> {
+export async function generate(generateRequest: GenerateRequest, abortSignal?: AbortSignal): Promise<AsyncGenerator<GenerateResponse>> {
     if (!generateRequest.prompt?.length) {
         throw new Error('PROMPT_EMPY');
     }
@@ -154,6 +156,7 @@ export async function generate(generateRequest: GenerateRequest): Promise<AsyncG
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(generateRequest),
+        signal: abortSignal,
     });
 
     if (!response.ok) {
@@ -234,7 +237,7 @@ export type ChatResponse = {
     >;
 };
 
-export async function chat(chatRequest: ChatRequest): Promise<AsyncGenerator<ChatResponse>> {
+export async function chat(chatRequest: ChatRequest, abortSignal?: AbortSignal): Promise<AsyncGenerator<ChatResponse>> {
     if (!chatRequest.messages?.length) {
         throw new Error('PROMPT_EMPY');
     }
@@ -247,6 +250,7 @@ export async function chat(chatRequest: ChatRequest): Promise<AsyncGenerator<Cha
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(chatRequest),
+        signal: abortSignal,
     });
 
     if (!response.ok) {
@@ -261,11 +265,12 @@ export async function chat(chatRequest: ChatRequest): Promise<AsyncGenerator<Cha
     return parseNDJSON<ChatResponse>(response.body as any, console.error);
 }
 
-export async function deleteModel(model: string): Promise<void> {
+export async function deleteModel(model: string, abortSignal?: AbortSignal): Promise<void> {
     const response = await fetch(`${AI_ENDPOINT}/api/delete`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model }),
+        signal: abortSignal,
     });
 
     if (!response.ok) {

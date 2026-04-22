@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect, useRef } from "react";
-import { useState } from "react";
-import { generate, tags, type TagsResponse, pull, chat, deleteModel } from "./ollama";
-import { MAX_CHAT_MESSAGES_COUNT } from "./constants";
-import PreEditable from "./preEditable";
+import { ChangeEvent, useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { generate, tags, type TagsResponse, pull, chat, deleteModel } from './ollama';
+import { MAX_CHAT_MESSAGES_COUNT } from './constants';
+import { PreEditable } from './preEditable';
 
 export type Message = {
+  role: 'user' | 'assistant';
   content: string;
-  role: "user" | "assistant";
+  files?: { name: string, icon: string; }[];
 };
 
 function ThinkingAnimation() {
@@ -27,7 +29,7 @@ function ThinkingAnimation() {
 
 export default function Home() {
   const shouldGetModels = useRef(true);
-  const [tagsResponse, setTagsResponse] = useState<TagsResponse | undefined>(undefined);
+  const [tagsResponse, setTagsResponse] = useState<TagsResponse>();
   const [model, setModel] = useState<string>('');
   const [modelToPull, setModelToPull] = useState<string>('');
   const [prompt, setPrompt] = useState('');
@@ -35,14 +37,37 @@ export default function Home() {
   const [thinking, setThinking] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
   const [chatMode, setChatMode] = useState(true);
+  const [abortController, setAbortController] = useState<AbortController>();
+  const [files, setFiles] = useState<{ name: string; content: string; icon: string; }[]>([]);
 
-  function addMessages(...newMessages: Message[]) {
-    setMessages(messages.concat(newMessages));
+  function addMessage(newMessage: Message, deleteLastMessage?: boolean) {
+    setMessages((prevMessages) => (deleteLastMessage ? prevMessages.slice(0, -1) : prevMessages).concat(newMessage));
   }
 
   function processError(error: unknown) {
     console.error(error);
     alert(error);
+  }
+
+  function uploadFile(e: ChangeEvent<HTMLInputElement>) {
+    if (e.target.files?.length) {
+      for (const file of e.target.files) {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          if (typeof e.target?.result === 'string') {
+            setFiles((prevFiles) => prevFiles.concat({ name: file.name, content: e.target!.result as string, icon: 'file-earmark-fill' }));
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      e.target.value = '';
+    }
+  }
+
+  function deleteFile(index: number) {
+    setFiles((prevFiles) => prevFiles.filter((file, i) => i !== index));
   }
 
   async function exec() {
@@ -56,67 +81,97 @@ export default function Home() {
   async function execGenerate() {
     const promptTrimmed = prompt.trim();
 
-    if (!prompt.length) {
+    if (!promptTrimmed.length) {
       return;
     }
 
-    const message: Message = { role: "user", content: promptTrimmed };
+    const message: Message = { role: 'user', content: promptTrimmed };
+    const abortController = new AbortController();
 
     setThinking(true);
     setPrompt('');
-    addMessages(message);
+    addMessage(message);
+    setAbortController(abortController);
 
     try {
+      const promptWithFiles = addFilesToPrompt(promptTrimmed);
       let response = '';
 
-      for await (const result of await generate({ model, prompt: promptTrimmed })) {
+      for await (const result of await generate({ model, prompt: promptWithFiles }, abortController.signal)) {
         if (result.response?.length) {
+          const justAdded = response.length === 0
+
           response += result.response;
 
-          addMessages(message, { role: "assistant", content: response });
+          addMessage({ role: 'assistant', content: response }, !justAdded);
         }
       }
     } catch (error) {
       processError(error);
     } finally {
+      setAbortController(undefined);
       setThinking(false);
     }
+  }
+
+  function addFilesToPrompt(prompt: string): string {
+    if (files.length) {
+      for (const { name, content } of files) {
+        prompt += `\n--- File '${name}' ---\n`;
+        prompt += content;
+        prompt += `\n--- End of file '${name}' ---`;
+      }
+
+      setFiles([]);
+    }
+
+    return prompt;
   }
 
   async function execChat() {
     const promptTrimmed = prompt.trim();
 
-    if (!prompt.length) {
+    if (!promptTrimmed.length) {
       return;
     }
 
-    const message: Message = { role: "user", content: promptTrimmed };
+    const message: Message = { role: 'user', content: promptTrimmed };
+    const abortController = new AbortController();
 
     setThinking(true);
     setPrompt('');
-    addMessages(message);
+    addMessage(message);
+    setAbortController(abortController);
 
     try {
+      const promptWithFiles = addFilesToPrompt(promptTrimmed);
+      const messagesHistory = messages.slice(-MAX_CHAT_MESSAGES_COUNT).concat({ role: 'user', content: promptWithFiles });
       let response = '';
 
-      for await (const result of await chat({ model, messages: messages.slice(-MAX_CHAT_MESSAGES_COUNT).concat({ role: 'user', content: prompt }) })) {
-        if (result.message?.content) {
-          response += result.message.content;
-          response = response.trim();
+      for await (const result of await chat({ model, messages: messagesHistory }, abortController.signal)) {
+        if (result.message?.content?.length) {
+          const justAdded = response.length === 0
 
-          addMessages(message, { role: 'assistant', content: response });
+          response += result.message.content;
+
+          addMessage({ role: 'assistant', content: response.trim() }, !justAdded);
         }
       }
     } catch (error) {
       processError(error);
     } finally {
+      setAbortController(undefined);
       setThinking(false);
     }
   }
 
   async function execPull() {
     try {
-      for await (const result of await pull(modelToPull.trim())) {
+      const abortController = new AbortController();
+
+      setAbortController(abortController);
+
+      for await (const result of await pull(modelToPull.trim(), abortController.signal)) {
         if (result.completed != null && result.total != null) {
           setPullProgress(Math.max(0, Math.min(1, result.completed / result.total)));
         }
@@ -128,58 +183,82 @@ export default function Home() {
       setTagsResponse(undefined);
     } catch (error) {
       processError(error);
+    } finally {
+      setAbortController(undefined);
     }
   }
 
   async function execDelete() {
     try {
-      await deleteModel(model.trim());
+      const abortController = new AbortController();
+
+      setAbortController(abortController);
+
+      await deleteModel(model.trim(), abortController.signal);
 
       shouldGetModels.current = true;
 
       setTagsResponse(undefined);
+      setAbortController(undefined);
     } catch (error) {
       processError(error);
+    } finally {
+      setAbortController(undefined);
     }
   }
+
+  const execTags = useCallback(async () => {
+    const abortController = new AbortController();
+
+    setAbortController(abortController);
+
+    try {
+      const result = await tags(abortController.signal);
+
+      setTagsResponse(result);
+
+      const modelNotFound = !result.models.find((curModel) => curModel.name === model);
+
+      if ((!model.length || modelNotFound) && result.models.length) {
+        const modelStored = localStorage.getItem('model');
+        const modelToUse = result.models.find((curModel) => curModel.name === modelStored)?.name ?? result.models[0].name;
+
+        setModel(modelToUse);
+
+        if (modelStored !== modelToUse) {
+          localStorage.setItem('model', modelToUse);
+        }
+      }
+    }
+    catch (error) {
+      processError(error);
+    }
+    finally {
+      setAbortController(undefined);
+    }
+  }, [model]);
 
   useEffect(() => {
     if (!tagsResponse && shouldGetModels.current) {
       shouldGetModels.current = false;
 
-      tags()
-        .then((result) => {
-          setTagsResponse(result);
-
-          const modelNotFound = !result.models.find((curModel) => curModel.name === model);
-
-          if ((!model.length || modelNotFound) && result.models.length) {
-            const modelStored = localStorage.getItem('model');
-            const modelToUse = result.models.find((curModel) => curModel.name === modelStored)?.name ?? result.models[0].name;
-
-            setModel(modelToUse);
-
-            if (modelStored !== modelToUse) {
-              localStorage.setItem('model', modelToUse);
-            }
-          }
-        })
-        .catch(processError);
+      execTags();
     }
-  }, [tagsResponse, model]);
+  }, [tagsResponse, execTags]);
 
   return (
     <>
-      <main className="flex-grow-1 mb-5 pb-5">
+      <main className="flex-grow-1 mt-4 mb-5 pb-4">
         <div className="container">
           {
             messages.length
               ?
-              messages.map(({ role, content }, i) =>
+              messages.map(({ role, content, files }, i) =>
                 <div className="row mt-2" key={i}>
                   <div className={`col ${role === 'assistant' ? '' : 'rounded-sm bg-gray-800'}`}>
                     <div className={`alert ${role === 'user' ? 'alert-primary' : 'alert-secondary'} mb-0`} role="alert">
-                      <pre className="m-0 whitespace-prewrap">{content}</pre>
+                      <ReactMarkdown>{content}</ReactMarkdown>
+                      {files?.map((file, i) => <span className="badge text-bg-secondary" key={i}>{file.name}</span>)}
                     </div>
                   </div>
                 </div>
@@ -212,8 +291,8 @@ export default function Home() {
               <li><hr className="dropdown-divider" /></li>
               <form className="px-3 py-1">
                 <div className="form-check">
-                  <input type="checkbox" className="form-check-input" style={{cursor: "pointer"}} id="checkbox-chat" checked={chatMode} aria-label="Checkbox for following text input" onChange={(event) => setChatMode(event.target.checked)} />
-                  <label className="form-check-label" htmlFor="checkbox-chat" style={{cursor: "pointer"}}>Chat</label>
+                  <input type="checkbox" className="form-check-input" style={{ cursor: "pointer" }} id="checkbox-chat" checked={chatMode} aria-label="Checkbox for following text input" onChange={(event) => setChatMode(event.target.checked)} />
+                  <label className="form-check-label" htmlFor="checkbox-chat" style={{ cursor: "pointer" }}>Chat</label>
                 </div>
                 <div className="mt-2">
                   <div className="input-group">
@@ -225,8 +304,29 @@ export default function Home() {
                   </div>
                 </div>
               </form>
-              <li><a className="dropdown-item" href="#"><i className="bi bi-upload"></i> Load a file</a></li>
+              <form className="px-3 py-1">
+                <div className="input-group">
+                  <label htmlFor="uploadFileInput" className="form-label" style={{ cursor: 'pointer' }}><i className="bi bi-upload"></i> Load a file</label>
+                  <input className="form-control" type="file" id="uploadFileInput" style={{ display: 'none' }} onChange={uploadFile} />
+                </div>
+              </form>
             </ul>
+
+            {
+              files.length
+                ?
+                <>
+                  <button className="btn btn-outline-secondary bg-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Files</button>
+                  <ul className="dropdown-menu">
+                    <li><a className="dropdown-item text-secondary" href="#"><strong>Files</strong></a></li>
+                    <li><hr className="dropdown-divider" /></li>
+                    {files.map(({ name }, i) => <li key={i}><a className="dropdown-item text-secondary" href="#" onClick={() => deleteFile(i)}><i className="bi bi-trash3-fill"></i> {name}</a></li>)}
+                  </ul>
+                </>
+                :
+                undefined
+            }
+
             <PreEditable
               className="border-primary"
               placeholder="Prompt"
@@ -234,7 +334,7 @@ export default function Home() {
               onChange={setPrompt}
               onEnter={(c, s, a) => { if (!c && !s && !a && !thinking) { exec(); } return !s; }}
             />
-            <button className="btn btn-outline-primary bg-white" type="button" id="button-addon2" disabled={thinking} onClick={() => exec()}><i className="bi bi-play-fill"></i></button>
+            <button className="btn btn-outline-primary bg-white" type="button" id="button-addon2" onClick={() => thinking ? abortController ? abortController?.abort() : alert('NO CONTROLLER') : exec()}>{thinking ? <i className="bi bi-stop-fill"></i> : <i className="bi bi-play-fill"></i>}</button>
           </div>
         </div>
       </footer>
