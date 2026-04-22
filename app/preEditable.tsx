@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export default function PreEditable(
+export function PreEditable(
     {
         className,
         placeholder,
